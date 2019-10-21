@@ -1,4 +1,4 @@
-﻿# rpachallenge.com Input Forms
+﻿# RPAChallenge.com Input Forms
 
 You can find out this excersise on the website [RPAChallenge.com](http://rpachallenge.com/):
 
@@ -76,6 +76,8 @@ function getElementByXpath(path) {
 From now, it's possible to search all HTML items by [XPath](https://www.w3schools.com/xml/xpath_syntax.asp).
 For example, if we want to find out red start button, which is defined by:
 
+![getElementByXpath](getelementbyxpath.jpg)
+
 ```html
 <button ...>...</button>
 ```
@@ -90,7 +92,8 @@ Let's prepare header for our G1ANT script:
 
 ```G1ANT
 selenium.open chrome url http://rpachallenge.com/ 
-xlsx.open c:\users\chris\downloads\challenge.xlsx
+-- enter your correct path
+xlsx.open challenge.xlsx
 
 dialog start
 selenium.click search //button by xpath
