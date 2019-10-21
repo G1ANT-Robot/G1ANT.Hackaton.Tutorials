@@ -98,7 +98,29 @@ for ♥row from 2 to 11
 ```
 
 As you can see, the hackaton calculation will start only when we click **OK** 
-button in the information dialog. Let's fill all other HTML elements, the all script below:
+button in the information dialog. Let's fill all other HTML elements. All have 
+the same attribute name **ng-reflect-name** which contains the label name:
+labelFirstName, labelLastName, labelCompanyName, labelRole, 
+labelAddress, labelEmail, labelPhone. Let's try examples below in the 
+Google Chrome Console.
+
+```JavaScript
+getElementByXpath("//input[@ng-reflect-name='labelFirstName']")
+getElementByXpath("//input[@ng-reflect-name='labelLastName']")
+getElementByXpath("//input[@ng-reflect-name='labelCompanyName']")
+getElementByXpath("//input[@ng-reflect-name='labelRole']")
+getElementByXpath("//input[@ng-reflect-name='labelAddress']")
+getElementByXpath("//input[@ng-reflect-name='labelEmail']")
+getElementByXpath("//input[@ng-reflect-name='labelPhone']")
+```
+
+The last element to find out is **SUBMIT **button. Try to find this alone. 
+
+We should use these G1ANT's commands:
+1. To change HTML element: **selenium.type**
+2. To press key: **selenium.presskey**
+
+The all script below:
 
 ```G1ANT
 selenium.open chrome url http://rpachallenge.com/ 
