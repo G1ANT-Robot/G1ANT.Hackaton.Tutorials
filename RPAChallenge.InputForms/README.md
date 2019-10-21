@@ -1,6 +1,6 @@
 ﻿# rpachallenge.com Input Forms
 
-You can find out this excersise on the website [RPAChallenge.com](https://rpachallenge.com/):
+You can find out this excersise on the website [RPAChallenge.com](http://rpachallenge.com/):
 
 1. The goal of this challenge is to create a workflow that will input data from a spreadsheet into the form fields on the screen.
 2. Beware! The fields will change position on the screen after every submission throughout 10 rounds thus the workflow must correctly identify where each spreadsheet record must be typed every time.
@@ -63,3 +63,91 @@ we can see HTML body of each element, and it's changing also:
 Iteration 1 | Iteration 2 | Iteration 3
 ----------- | ----------- | -----------
 ![WebCode1](webcode1.jpg) | ![WebCode2](webcode2.jpg) | ![WebCode3](webcode3.jpg)
+
+Note: one small hack, we can execute that script in the Google Chrome console 
+and we will have new very usefull function to find out HTML elements:
+
+```JavaScript
+function getElementByXpath(path) {
+  return document.evaluate(path, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+}
+```
+
+From now, it's possible to search all HTML items by [XPath](https://www.w3schools.com/xml/xpath_syntax.asp).
+For example, if we want to find out red start button, which is defined by:
+
+```html
+<button ...>...</button>
+```
+
+You can click this by entering code above in the Google Chrome Console:
+
+```JavaScript
+getElementByXpath('//button').click()
+```
+
+Let's prepare header for our G1ANT script:
+
+```G1ANT
+selenium.open chrome url http://rpachallenge.com/ 
+xlsx.open c:\users\chris\downloads\challenge.xlsx
+
+dialog start
+selenium.click search //button by xpath
+for ♥row from 2 to 11
+```
+
+As you can see, the hackaton calculation will start only when we click **OK** 
+button in the information dialog. Let's fill all other HTML elements, the all script below:
+
+```G1ANT
+selenium.open chrome url http://rpachallenge.com/ 
+xlsx.open c:\users\chris\downloads\challenge.xlsx
+
+dialog start
+selenium.click search //button by xpath
+for ♥row from 2 to 11
+    xlsx.getvalue row ♥row colindex 1 result ♥firstname
+    xlsx.getvalue row ♥row colindex 2 result ♥lastname
+    xlsx.getvalue row ♥row colindex 3 result ♥company
+    xlsx.getvalue row ♥row colindex 4 result ♥role
+    xlsx.getvalue row ♥row colindex 5 result ♥address
+    xlsx.getvalue row ♥row colindex 6 result ♥email
+    xlsx.getvalue row ♥row colindex 7 result ♥phone
+ 
+    selenium.type ♥firstname search //input[@ng-reflect-name='labelFirstName'] by xpath 
+    selenium.type ♥lastname search //input[@ng-reflect-name='labelLastName'] by xpath 
+    selenium.type ♥company search //input[@ng-reflect-name='labelCompanyName'] by xpath 
+    selenium.type ♥role search //input[@ng-reflect-name='labelRole'] by xpath 
+    selenium.type ♥address search //input[@ng-reflect-name='labelAddress'] by xpath 
+    selenium.type ♥email search //input[@ng-reflect-name='labelEmail'] by xpath 
+    selenium.type ♥phone search //input[@ng-reflect-name='labelPhone'] by xpath 
+    selenium.presskey enter search //input[@type='submit'] by xpath
+end
+xlsx.close
+```
+
+Let's try this one. The last RPAChallenge's screen should be like this:
+
+![Success](success.jpg)
+
+<!-- The script should look like this
+```G1ANT
+selenium.open chrome url http://rpachallenge.com/ 
+xlsx.open c:\users\chris\downloads\challenge.xlsx
+xlsx.gettable
+selenium.waitforopen
+selenium.click search //button by xpath
+for ♥row from 1 to ♥result⟦count⟧
+    selenium.enter ♥result⟦First Name,♥row⟧ search //input[@ng-reflect-name='labelFirstName'] by xpath 
+    selenium.enter ♥result⟦Last Name,♥row⟧ search //input[@ng-reflect-name='labelLastName'] by xpath 
+    selenium.enter ♥result⟦Company Name,♥row⟧ search //input[@ng-reflect-name='labelCompanyName'] by xpath 
+    selenium.enter ♥result⟦Role in Company,♥row⟧ search //input[@ng-reflect-name='labelRole'] by xpath 
+    selenium.enter ♥result⟦Address,♥row⟧ search //input[@ng-reflect-name='labelAddress'] by xpath 
+    selenium.entry ♥result⟦Email,♥row⟧ search //input[@ng-reflect-name='labelEmail'] by xpath 
+    selenium.type ♥result⟦Phone Number,♥row⟧ search //input[@ng-reflect-name='labelPhone'] by xpath 
+    selenium.click search //input[@type='submit'] by xpath
+end
+xlsx.close
+```
+-->
