@@ -64,6 +64,8 @@ Iteration 1 | Iteration 2 | Iteration 3
 ----------- | ----------- | -----------
 ![WebCode1](webcode1.jpg) | ![WebCode2](webcode2.jpg) | ![WebCode3](webcode3.jpg)
 
+## Javascript getElementByXpath()
+
 Note: one small hack, we can execute that script in the Google Chrome console 
 and we will have new very usefull function to find out HTML elements:
 
@@ -87,6 +89,8 @@ You can click this by entering code above in the Google Chrome Console:
 ```JavaScript
 getElementByXpath('//button').click()
 ```
+
+## Let's start coding with G1ANT
 
 Let's prepare header for our G1ANT script:
 
@@ -118,6 +122,8 @@ getElementByXpath("//input[@ng-reflect-name='labelPhone']")
 ```
 
 The last element to find out is **SUBMIT **button. Try to find this alone. 
+
+## First script version
 
 We should use these G1ANT's commands:
 1. To change HTML element: **selenium.type**
@@ -155,6 +161,44 @@ xlsx.close
 Let's try this one. The last RPAChallenge's screen should be like this:
 
 ![Success](success.jpg)
+
+# window command
+
+The last thing. We can use `window` command instead of `dialog start`. It means, 
+the filling process will start when html will be loaded into the browser, 
+and the page will have title "Rpa Challenge - Google Chrome". 
+You can check all open windows by pressing <ctrl+W> in G1ANT.Studio (menu Tools->Windows).
+
+The window command has implemented timeout mechanism (check argument `timeout`), 
+and if the expected window will not appear, the error will be thrown. The new script, 
+with the maximum timeout 100 seconds:
+
+```G1ANT
+selenium.open chrome url http://rpachallenge.com/ 
+xlsx.open c:\users\chris\downloads\challenge.xlsx
+
+window ‴Rpa Challenge - Google Chrome‴ timeout 100000
+selenium.click search //button by xpath
+for ♥row from 2 to 11
+    xlsx.getvalue row ♥row colindex 1 result ♥firstname
+    xlsx.getvalue row ♥row colindex 2 result ♥lastname
+    xlsx.getvalue row ♥row colindex 3 result ♥company
+    xlsx.getvalue row ♥row colindex 4 result ♥role
+    xlsx.getvalue row ♥row colindex 5 result ♥address
+    xlsx.getvalue row ♥row colindex 6 result ♥email
+    xlsx.getvalue row ♥row colindex 7 result ♥phone
+ 
+    selenium.type ♥firstname search //input[@ng-reflect-name='labelFirstName'] by xpath 
+    selenium.type ♥lastname search //input[@ng-reflect-name='labelLastName'] by xpath 
+    selenium.type ♥company search //input[@ng-reflect-name='labelCompanyName'] by xpath 
+    selenium.type ♥role search //input[@ng-reflect-name='labelRole'] by xpath 
+    selenium.type ♥address search //input[@ng-reflect-name='labelAddress'] by xpath 
+    selenium.type ♥email search //input[@ng-reflect-name='labelEmail'] by xpath 
+    selenium.type ♥phone search //input[@ng-reflect-name='labelPhone'] by xpath 
+    selenium.presskey enter search //input[@type='submit'] by xpath
+end
+xlsx.close
+```
 
 <!-- The script should look like this
 ```G1ANT
