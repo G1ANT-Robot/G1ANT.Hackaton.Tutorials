@@ -242,7 +242,8 @@ Execute that example and you will see congratulations form.
 
 Why only 80%? We would like to have better results that sentiment service gives us. 
 
-If we put all the review into google, we will see exact result in IMDB.com service.
+If we put all the review into google, we will see exact result in IMDB.com service, 
+but that feature doesn't work for all reviews :)
 
 ![IMDB.com](imdb.jpg)
 
