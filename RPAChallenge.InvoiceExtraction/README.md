@@ -37,7 +37,9 @@ There are some documentation files:
 
 Register on [that service](https://elis.rossum.ai/) and create queue for US invoices, because as we know, our invoices will come from US region.
 
-![queue](queues.jpg)
+![queue](queue.jpg)
+
+Let's check your queue number on the url. In our case the number is 29838.
 
 And setup fields we need to extract to CSV: 
 
@@ -77,7 +79,7 @@ Then you can upload document to the queue. Alternatively, you can send documents
 
 ```
 curl -s -H 'Authorization: token db313f24f5738c8e04635e036ec8a45cdd6d6b03' \
-  -F content=@document.pdf 'https://api.elis.rossum.ai/v1/queues/8199/upload' | jq -r .results[0].annotation
+  -F content=@sample1.jpg 'https://api.elis.rossum.ai/v1/queues/29838/upload/sample1.jpg' | jq -r .results[0].annotation
 https://api.elis.rossum.ai/v1/annotations/319668
 ```
 
@@ -115,35 +117,120 @@ Let's do this in the G1ANT language. We have to create procedure which will send
 First of all, we should login to that webservice. We can do this if variable `♥token` is empty. Otherwise, 
 we just send `♥json` (standard query) or `♥filename` argument (upload invoice).
 
-For security purpose, store your password in Credentials Container from menu Tools, and use that in G1ANT's 
+For security reasons, store your password in Credentials Container from menu Tools, and use that in G1ANT's 
 code by special variable `♥credential⟦⟧`.
 
 ![Credential Container](credentialcontainer.jpg)
 
+Let's check our script by retrieve organisation objects.
+
+```
+curl -H 'Authorization: token db313f24f5738c8e04635e036ec8a45cdd6d6b03' \
+  'https://api.elis.rossum.ai/v1/organizations'
+```
+
+Example in G1ANT below.
+
 ```G1ANT
-procedure ProcessWebService url ‴‴ json ‴‴ filename ‴‴
-    if ♥token==‴‴
+♥token = ‴‴
+call ProcessWebService query /v1/organizations method GET
+dialog ♥result
+
+procedure ProcessWebService query ‴‴ json ‴‴ filename ‴‴ method ‴POST‴
+    if ♥token==""
+        ♥authorisation = ⟦text⟧{"username": "chris@g1ant.com", "password": "{password}"}
+        ♥url = https://api.elis.rossum.ai/v1/auth/login
         ⊂
+            System.Net.ServicePointManager.Expect100Continue = true;
+            System.Net.ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls12;
             System.Net.WebClient client = new System.Net.WebClient();
             client.Encoding = System.Text.Encoding.UTF8;
             client.Headers.Add("Content-Type", "application/json");
-            string url = "https://api.elis.rossum.ai/v1/auth/login";
-            string query = {"username": "chris@g1ant.com", "password": "♥credential⟦Rossum:chris@g1ant.com⟧"};
-            return client.UploadString(url, "POST", query);
+            string json = ♥authorisation.Replace("{password}", ♥credential⟦Rossum:chris@g1ant.com⟧);
+            return client.UploadString(♥url, "POST", json);
         ⊃
         ♥token = ♥result⟦.key⟧
         test ♥token!=""
     end
+    ♥url = https://api.elis.rossum.ai♥query
     ⊂
-        System.Net.WebClient client = new System.Net.WebClient();
-        client.Encoding = System.Text.Encoding.UTF8;
-        client.Headers.Add("Content-Type", "application/json");
-        client.Headers.Add("Authorization", "token " + ♥token);
-        if ♥filename != ""
-            return client.UploadFile(♥url, "POST", ♥filename);
+        string url = "https://api.elis.rossum.ai" + ♥query;
+        System.Net.ServicePointManager.Expect100Continue = true;
+        System.Net.ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls12;
+        if (♥filename != "")
+        {
+            System.IO.FileInfo file = new System.IO.FileInfo(♥filename);
+            int fileLength = (int)file.Length;
+
+            string boundary = "---------------------------" + DateTime.Now.Ticks.ToString("x");
+            byte[] boundarybytes = System.Text.Encoding.ASCII.GetBytes("\r\n--" + boundary + "\r\n");
+
+            System.Net.HttpWebRequest request = (System.Net.HttpWebRequest)System.Net.WebRequest.Create(url);
+            request.ContentType = "multipart/form-data; boundary=" + boundary;
+            request.Method = "POST";
+            request.KeepAlive = true;
+            request.Headers.Add(System.Net.HttpRequestHeader.Authorization, "token " + ♥token);
+
+            using (System.IO.Stream stream = request.GetRequestStream())
+            {
+                stream.Write(boundarybytes, 0, boundarybytes.Length);
+
+                byte[] headerbytes = System.Text.Encoding.UTF8.GetBytes(
+                    "Content-Disposition: form-data; name=\"content\"; filename=\"" + file.Name + "\"\r\n\r\n");
+                stream.Write(headerbytes, 0, headerbytes.Length);
+
+                System.IO.FileStream fileStream = new System.IO.FileStream(♥filename, System.IO.FileMode.Open, System.IO.FileAccess.Read);
+                stream.Write(System.IO.File.ReadAllBytes(♥filename), 0, fileLength);
+                fileStream.Close();
+
+                byte[] trailer = System.Text.Encoding.ASCII.GetBytes("\r\n--" + boundary + "--\r\n");
+                stream.Write(trailer, 0, trailer.Length);
+            }
+            using (System.IO.Stream stream = request.GetResponse().GetResponseStream())
+                return new System.IO.StreamReader(stream).ReadToEnd();
+        }
+        else if (♥method == "POST")
+        {
+            System.Net.WebClient client = new System.Net.WebClient();
+            //client.Encoding = System.Text.Encoding.UTF8;
+            client.Headers.Add("Authorization", "token " + ♥token);
+            client.Headers.Add("Content-Type", "application/json");
+            return client.UploadString(♥url, ♥method, ♥json);
+        }
+        else if (♥method == "GET")
+        {
+            System.Net.WebClient client = new System.Net.WebClient();
+            //client.Encoding = System.Text.Encoding.UTF8;
+            client.Headers.Add("Authorization", "token " + ♥token);
+            return client.DownloadString(♥url);
+        }
         else
-            return client.UploadString(♥url, "POST", ♥json);
+            throw new NotImplementedException();
     ⊃
-    ♥json = ♥result
 end
 ```
+
+And the result:
+
+![result json](resultjson.jpg)
+
+Ok, it's working! So let's come back to our invoices, and send our two samples into Rossum API.
+
+```G1ANT
+♥token = ‴‴
+call ProcessWebService query /v1/queues/29838/upload method POST filename c:\Users\Chris\Downloads\Sample1.jpg
+dialog ♥result
+```
+
+![result json](resultjsonfile.jpg)
+
+And take a look on Rossum's website. The file should appear in the US Invoices queue as exported, soon.
+
+![exported](exported.jpg)
+
+Let's check exported fields by clicking on the sample1.jpg name.
+
+![exported fields](exportedfields.jpg)
+
+Everything looks fine. All fields were detected in the correct way. So we can write the rest of our script.
+
