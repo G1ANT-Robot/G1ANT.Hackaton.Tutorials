@@ -111,7 +111,7 @@ end
 
 procedure ProcessReview number 1
     selenium.getattribute innerHTML search ‴//div[@class="col s8 m8 l8 reviewsText"]/div[♥number]/div/p‴ by xpath result ♥review
-    call ProcessWebService text ♥review
+    call Sentiment text ♥review
     if ♥positive
         selenium.click search ‴//div[@class="col s8 m8 l8 reviewsText"]/div[♥number]/div/a[1]‴ by xpath 
     else
@@ -163,7 +163,7 @@ curl -v -X POST "https://westcentralus.api.cognitive.microsoft.com/text/analytic
 We can use C# snippet to create all web request to Microsoft Sentiment service:
 
 ```G1ANT
-procedure ProcessWebService text ‴‴
+procedure Sentiment text ‴‴
     ♥body = ⟦text⟧{ "documents": [ {"language": "en", "id": "1", "text": "♥text" } ] }
     ⊂
         System.Net.WebClient client = new System.Net.WebClient();
@@ -204,7 +204,7 @@ end
 
 procedure ProcessReview number 1
     selenium.getattribute innerHTML search ‴//div[@class="col s8 m8 l8 reviewsText"]/div[♥number]/div/p‴ by xpath result ♥review
-    call ProcessWebService text ♥review
+    call Sentiment text ♥review
     if ♥positive
         selenium.click search ‴//div[@class="col s8 m8 l8 reviewsText"]/div[♥number]/div/a[1]‴ by xpath 
     else
@@ -212,7 +212,7 @@ procedure ProcessReview number 1
     end
 end
 
-procedure ProcessWebService text ‴‴
+procedure Sentiment text ‴‴
     ♥body = ⟦text⟧{ "documents": [ {"language": "en", "id": "1", "text": "♥text" } ] }
     ⊂
         System.Net.WebClient client = new System.Net.WebClient();
@@ -249,7 +249,7 @@ but that feature doesn't work for all reviews :)
 
 Maybe it's a better way to understand which review is positive or negative. 
 
-This is the new ProcessWebService procedure:
+This is the new Sentiment procedure:
 
 1. Open Google.com tab
 2. Enter full text review and click Search

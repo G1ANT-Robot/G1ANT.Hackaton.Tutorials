@@ -133,10 +133,10 @@ Example in G1ANT below.
 
 ```G1ANT
 ♥token = ‴‴
-call ProcessWebService query /v1/organizations method GET
+call Rossum query /v1/organizations method GET
 dialog ♥result
 
-procedure ProcessWebService query ‴‴ json ‴‴ filename ‴‴ method ‴POST‴
+procedure Rossum query ‴‴ json ‴‴ filename ‴‴ method ‴POST‴
     if ♥token==""
         ♥authorisation = ⟦text⟧{"username": "chris@g1ant.com", "password": "{password}"}
         ♥url = https://api.elis.rossum.ai/v1/auth/login
@@ -232,5 +232,278 @@ Let's check exported fields by clicking on the sample1.jpg name.
 
 ![exported fields](exportedfields.jpg)
 
-Everything looks fine. All fields were detected in the correct way. So we can write the rest of our script.
+## The full process
 
+Everything looks fine. All fields were detected in the correct way. So we can write the rest of our script. 
+The Rossum procedure is above. The example json which will be decoded by ReadFile procedure below:
+
+```json
+{
+  "pagination": {
+    "total": 1,
+    "total_pages": 1,
+    "next": null,
+    "previous": null
+  },
+  "results": [
+    {
+      "url": "https://api.elis.rossum.ai/v1/annotations/1299441",
+      "status": "exported",
+      "arrived_at": "2019-12-06T10:29:41.680356Z",
+      "exported_at": "2019-12-06T10:30:28.985607Z",
+      "document": {
+        "url": "https://api.elis.rossum.ai/v1/documents/1300633",
+        "file_name": "Invoice1.jpg",
+        "file": "https://api.elis.rossum.ai/v1/documents/1300633/content"
+      },
+      "modifier": null,
+      "schema": {
+        "url": "https://api.elis.rossum.ai/v1/schemas/249012"
+      },
+      "metadata": {},
+      "content": [
+        {
+          "category": "section",
+          "schema_id": "invoice_details_section",
+          "children": [
+            {
+              "category": "datapoint",
+              "schema_id": "invoice_id",
+              "rir_confidence": 0.88315943292202548,
+              "value": "16996",
+              "type": "string"
+            },
+            {
+              "category": "datapoint",
+              "schema_id": "date_issue",
+              "rir_confidence": 0.99074839277057047,
+              "value": "2019-06-20",
+              "type": "date"
+            },
+            {
+              "category": "datapoint",
+              "schema_id": "date_due",
+              "rir_confidence": null,
+              "value": "",
+              "type": "date"
+            }
+          ]
+        },
+        {
+          "category": "section",
+          "schema_id": "payment_info_section",
+          "children": []
+        },
+        {
+          "category": "section",
+          "schema_id": "totals_section",
+          "children": [
+            {
+              "category": "datapoint",
+              "schema_id": "amount_due",
+              "rir_confidence": 0.958716846037662,
+              "value": "2100.00",
+              "type": "number"
+            },
+            {
+              "category": "datapoint",
+              "schema_id": "currency",
+              "rir_confidence": null,
+              "value": "usd",
+              "type": "enum"
+            },
+            {
+              "category": "multivalue",
+              "schema_id": "tax_details",
+              "children": [
+                {
+                  "category": "tuple",
+                  "schema_id": "tax_detail",
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "category": "section",
+          "schema_id": "vendor_section",
+          "children": [
+            {
+              "category": "datapoint",
+              "schema_id": "recipient_name",
+              "rir_confidence": 0.84859950622828428,
+              "value": "ACME Inc.",
+              "type": "string"
+            }
+          ]
+        },
+        {
+          "category": "section",
+          "schema_id": "other_section",
+          "children": []
+        },
+        {
+          "category": "section",
+          "schema_id": "line_items_section",
+          "children": [
+            {
+              "category": "multivalue",
+              "schema_id": "line_items",
+              "children": [
+                {
+                  "category": "tuple",
+                  "schema_id": "line_item",
+                  "children": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+Put the code below on the top of your script. 
+
+```G1ANT
+♥token = ‴‴
+♥queue = 29838
+
+selenium.open chrome url https://rpachallengeocr.azurewebsites.net/
+window ‴Automation Challenge - OCR - Google Chrome‴ style maximize timeout 30000
+selenium.click search //button[@id="start"] by xpath
+for ♥page from 1 to 3
+    call ReadTable page ♥page
+end
+call Rossum query /v1/auth/logout method POST
+
+
+procedure ReadTable page 1
+    selenium.click search //div[@id="tableSandbox_paginate"]/span/a[@data-dt-idx="♥page"] by xpath
+    for ♥number from 1 to 4
+        selenium.getinnerhtml search //tbody/tr[♥number]/td[3] by xpath result ♥duedate
+        if ⊂System.DateTime.Parse(♥duedate) <= System.DateTime.Today⊃
+            selenium.getinnerhtml search //tbody/tr[♥number]/td[1] by xpath result ♥index
+            selenium.getinnerhtml search //tbody/tr[♥number]/td[2] by xpath result ♥id
+            selenium.getattribute href search //tbody/tr[♥number]/td[4]/a by xpath result ♥url
+            ♥filename = ♥environment⟦USERPROFILE⟧\Downloads\Invoice♥index.jpg
+            call DownloadFile url ♥url filename ♥filename
+            call ReadFile index ♥index id ♥id duedate ♥duedate filename ♥filename
+        end
+    end
+end
+
+procedure DownloadFile url ‴‴ filename ‴‴
+    ⊂
+        if (System.IO.File.Exists(♥filename))
+            System.IO.File.Delete(♥filename);
+        System.Net.ServicePointManager.Expect100Continue = true;
+        System.Net.ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls12;
+        System.Net.WebClient client = new System.Net.WebClient();
+        client.DownloadFile(♥url, ♥filename);
+    ⊃
+end
+
+procedure ReadFile index 1 id ‴‴ duedate ‴‴ filename ♥filename
+    -dialog ‴♥index ♥id ♥duedate ♥url‴
+    call Rossum query /v1/queues/♥queue/upload method POST filename ♥filename
+    ♥annotation = ⊂♥result⟦annotation⟧.Replace("https://api.elis.rossum.ai", "")⊃
+    ♥processing = true
+    while ♥processing
+        delay 1
+        call Rossum query ♥annotation method GET
+        ♥rossumid = ♥result⟦id⟧
+        ♥processing = ♥result⟦status⟧!="exported"
+    end
+    call Rossum query /v1/queues/♥queue/export?status=exported&format=json&id=♥rossumid method GET
+    
+    ♥invoiceno = ♥result⟦results[0].content[0].children[0].value⟧
+    test ♥result⟦results[0].content[0].children[0].schema_id⟧=="invoice_id"
+    ♥invoicedate = ♥result⟦results[0].content[0].children[1].value⟧
+    test ♥result⟦results[0].content[0].children[1].schema_id⟧=="date_issue"
+    ♥date_due = ♥result⟦results[0].content[0].children[1].value⟧
+    test ♥result⟦results[0].content[0].children[2].schema_id⟧=="date_due"
+    ♥totaldue = ♥result⟦results[0].content[2].children[0].value⟧
+    test ♥result⟦results[0].content[2].children[0].schema_id⟧=="amount_due"
+    ♥companyname = ♥result⟦results[0].content[3].children[0].value⟧
+    test ♥result⟦results[0].content[3].children[0].schema_id⟧=="sender_name"
+        
+    call AppendCsv csvname ♥environment⟦USERPROFILE⟧\Downloads\invoices.csv id ♥id duedate ♥duedate invoiceno ♥invoiceno invoicedate ♥invoicedate companyname ♥companyname totaldue ♥totaldue
+end
+
+procedure AppendCsv csvname ‴‴ id ‴‴ duedate ‴‴ invoiceno ‴‴ invoicedate ‴‴ companyname ‴‴ totaldue ‴‴
+    ⊂
+        if (!System.IO.File.Exists(♥csvname))
+            System.IO.File.WriteAllText(♥csvname,
+                "ID,DueDate,InvoiceNo,InvoiceDate,CompanyName,TotalDue\r\n");
+        System.IO.File.AppendAllText(♥csvname,
+            ♥id + "," + ♥duedate + "," + ♥invoiceno + "," + ♥invoicedate + "," + 
+            ♥companyname + "," + ♥totaldue + "\r\n"); 
+    ⊃
+end
+```
+
+## Hotfixes
+
+After the script execution, we will have that csvfile:
+
+![csv in excel](excelcsv.jpg)
+
+As we can see, everything working fine this time and all the data was detected properly. 
+But remember - this is not the best solution for production environment.
+Better way is to use [Generic AI Engine](https://rossum.ai/help/article/do-you-need-generic-or-dedicated-ai-engine/)
+which can be trained by our data.
+
+Second thing, all the dates should be in the format dd-MM-yyyy (for example 27-11-2019), but 
+some of them, exported from invoices have format yyyy-MM-dd (for exampple 2019-11-27). 
+So, whe should put some code to correct that issue.
+
+```G1ANT
+    if ⊂♥invoicedate.Substring(2, 1) != "-"⊃
+        - yyyy-MM-dd
+        ♥year = ⟦text⟧♥invoicedate.Substring(0, 4)
+        ♥month = ⟦text⟧♥invoicedate.Substring(5, 2)
+        ♥day = ⟦text⟧♥invoicedate.Substring(8, 2)
+        ♥invoicedate = ‴♥day-♥month-♥year‴
+    end
+    test ⊂♥invoicedate.Length == 10 && ♥invoicedate.Substring(2, 1) == "-" && ♥invoicedate.Substring(5, 1) == "-" ⊃
+```
+
+## Upload CSV
+
+The last thing is to upload generated file into csv file:
+
+```G1ANT
+procedure AppendCsv csvname ‴‴ id ‴‴ duedate ‴‴ invoiceno ‴‴ invoicedate ‴‴ companyname ‴‴ totaldue ‴‴
+    ⊂
+        if (!System.IO.File.Exists(♥csvname))
+            System.IO.File.WriteAllText(♥csvname,
+                "ID,DueDate,InvoiceNo,InvoiceDate,CompanyName,TotalDue\r\n");
+        System.IO.File.AppendAllText(♥csvname,
+            ♥id + "," + ♥duedate + "," + ♥invoiceno + "," + ♥invoicedate + "," + 
+            ♥companyname + "," + ♥totaldue + "\r\n"); 
+    ⊃
+end
+```
+
+And we should click submit button and sent all the data into rpachallenge.com.
+
+```G1ANT
+selenium.click search //input[@type="file"] by xpath
+window open timeout 30000
+keyboard ♥environment⟦USERPROFILE⟧\Downloads\invoices.csv
+keyboard ⋘enter⋙
+excel.open ♥environment⟦USERPROFILE⟧\Downloads\invoices.csv
+```
+
+Execute script. After short time, you should receive message:
+
+![congrats](congrats.jpg)
+
+## Faster way
+
+The script will work much faster if we put all the data into Rossum first, and on the end 
+just download all the result. This is the job for you.
