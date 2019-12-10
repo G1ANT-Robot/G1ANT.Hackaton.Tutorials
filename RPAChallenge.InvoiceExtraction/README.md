@@ -1,4 +1,4 @@
-﻿# RPAChallenge.com Movie Extraction
+﻿# RPAChallenge.com Invoice Extraction
 
 You can find out this excersise on the website [RPAChallenge.com Invoice Extraction](https://rpachallengeocr.azurewebsites.net/):
 
@@ -507,3 +507,171 @@ Execute script. After short time, you should receive message:
 
 The script will work much faster if we put all the data into Rossum first, and on the end 
 just download all the result. This is the job for you.
+
+## The full script
+
+```G1ANT
+♥token = ‴‴
+♥queue = 29838
+
+file.delete ♥environment⟦USERPROFILE⟧\Downloads\invoices.csv errorjump next
+label next
+selenium.open chrome url https://rpachallengeocr.azurewebsites.net/
+window ‴Automation Challenge - OCR - Google Chrome‴ style maximize timeout 30000
+selenium.click search //button[@id="start"] by xpath
+for ♥page from 1 to 3
+    call ReadTable page ♥page
+end
+call Rossum query /v1/auth/logout method POST
+selenium.click search //input[@type="file"] by xpath
+window open timeout 30000
+keyboard ♥environment⟦USERPROFILE⟧\Downloads\invoices.csv
+keyboard ⋘enter⋙
+excel.open ♥environment⟦USERPROFILE⟧\Downloads\invoices.csv
+
+-selenium.click //input[@type=file] by xpath
+
+
+procedure Rossum query ‴‴ json ‴‴ filename ‴‴ method ‴POST‴
+    if ♥token==""
+        ♥authorisation = ⟦text⟧{"username": "chris@g1ant.com", "password": "{password}"}
+        ♥url = https://api.elis.rossum.ai/v1/auth/login
+        ⊂
+            System.Net.ServicePointManager.Expect100Continue = true;
+            System.Net.ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls12;
+            System.Net.WebClient client = new System.Net.WebClient();
+            client.Encoding = System.Text.Encoding.UTF8;
+            client.Headers.Add("Content-Type", "application/json");
+            string json = ♥authorisation.Replace("{password}", ♥credential⟦Rossum:chris@g1ant.com⟧);
+            return client.UploadString(♥url, "POST", json);
+        ⊃
+        ♥token = ♥result⟦.key⟧
+        test ♥token!=""
+    end
+    ♥url = https://api.elis.rossum.ai♥query
+    ⊂
+        string url = "https://api.elis.rossum.ai" + ♥query;
+        System.Net.ServicePointManager.Expect100Continue = true;
+        System.Net.ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls12;
+        if (♥filename != "")
+        {
+            System.IO.FileInfo file = new System.IO.FileInfo(♥filename);
+            int fileLength = (int)file.Length;
+
+            string boundary = "---------------------------" + DateTime.Now.Ticks.ToString("x");
+            byte[] boundarybytes = System.Text.Encoding.ASCII.GetBytes("\r\n--" + boundary + "\r\n");
+
+            System.Net.HttpWebRequest request = (System.Net.HttpWebRequest)System.Net.WebRequest.Create(url);
+            request.ContentType = "multipart/form-data; boundary=" + boundary;
+            request.Method = "POST";
+            request.KeepAlive = true;
+            request.Headers.Add(System.Net.HttpRequestHeader.Authorization, "token " + ♥token);
+
+            using (System.IO.Stream stream = request.GetRequestStream())
+            {
+                stream.Write(boundarybytes, 0, boundarybytes.Length);
+
+                byte[] headerbytes = System.Text.Encoding.UTF8.GetBytes(
+                    "Content-Disposition: form-data; name=\"content\"; filename=\"" + file.Name + "\"\r\n\r\n");
+                stream.Write(headerbytes, 0, headerbytes.Length);
+
+                System.IO.FileStream fileStream = new System.IO.FileStream(♥filename, System.IO.FileMode.Open, System.IO.FileAccess.Read);
+                stream.Write(System.IO.File.ReadAllBytes(♥filename), 0, fileLength);
+                fileStream.Close();
+
+                byte[] trailer = System.Text.Encoding.ASCII.GetBytes("\r\n--" + boundary + "--\r\n");
+                stream.Write(trailer, 0, trailer.Length);
+            }
+            using (System.IO.Stream stream = request.GetResponse().GetResponseStream())
+                return new System.IO.StreamReader(stream).ReadToEnd();
+        }
+        else if (♥method == "POST")
+        {
+            System.Net.WebClient client = new System.Net.WebClient();
+            //client.Encoding = System.Text.Encoding.UTF8;
+            client.Headers.Add("Authorization", "token " + ♥token);
+            client.Headers.Add("Content-Type", "application/json");
+            return client.UploadString(♥url, ♥method, ♥json);
+        }
+        else if (♥method == "GET")
+        {
+            System.Net.WebClient client = new System.Net.WebClient();
+            //client.Encoding = System.Text.Encoding.UTF8;
+            client.Headers.Add("Authorization", "token " + ♥token);
+            return client.DownloadString(♥url);
+        }
+        else
+            throw new NotImplementedException();
+    ⊃
+end
+
+procedure ReadTable page 1
+    selenium.click search //div[@id="tableSandbox_paginate"]/span/a[@data-dt-idx="♥page"] by xpath
+    for ♥number from 1 to 4
+        selenium.getinnerhtml search //tbody/tr[♥number]/td[3] by xpath result ♥duedate
+        if ⊂System.DateTime.Parse(♥duedate) <= System.DateTime.Today⊃
+            selenium.getinnerhtml search //tbody/tr[♥number]/td[1] by xpath result ♥index
+            selenium.getinnerhtml search //tbody/tr[♥number]/td[2] by xpath result ♥id
+            selenium.getattribute href search //tbody/tr[♥number]/td[4]/a by xpath result ♥url
+            ♥filename = ♥environment⟦USERPROFILE⟧\Downloads\Invoice♥index.jpg
+            call DownloadFile url ♥url filename ♥filename
+            call ReadFile index ♥index id ♥id duedate ♥duedate filename ♥filename
+        end
+    end
+end
+
+procedure DownloadFile url ‴‴ filename ‴‴
+    ⊂
+        if (System.IO.File.Exists(♥filename))
+            System.IO.File.Delete(♥filename);
+        System.Net.ServicePointManager.Expect100Continue = true;
+        System.Net.ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls12;
+        System.Net.WebClient client = new System.Net.WebClient();
+        client.DownloadFile(♥url, ♥filename);
+    ⊃
+end
+
+procedure ReadFile index 1 id ‴‴ duedate ‴‴ filename ♥filename
+    call Rossum query /v1/queues/♥queue/upload method POST filename ♥filename
+    ♥annotation = ⊂♥result⟦annotation⟧.Replace("https://api.elis.rossum.ai", "")⊃
+    ♥processing = true
+    while ♥processing
+        delay 1
+        call Rossum query ♥annotation method GET
+        ♥rossumid = ♥result⟦id⟧
+        ♥processing = ♥result⟦status⟧!="exported"
+    end
+    call Rossum query /v1/queues/♥queue/export?status=exported&format=json&id=♥rossumid method GET
+    
+    ♥invoiceno = ♥result⟦results[0].content[0].children[0].value⟧
+    test ♥result⟦results[0].content[0].children[0].schema_id⟧=="invoice_id"
+    ♥invoicedate = ♥result⟦results[0].content[0].children[1].value⟧
+    if ⊂♥invoicedate.Substring(2, 1) != "-"⊃
+        ♥year = ⟦text⟧♥invoicedate.Substring(0, 4)
+        ♥month = ⟦text⟧♥invoicedate.Substring(5, 2)
+        ♥day = ⟦text⟧♥invoicedate.Substring(8, 2)
+        ♥invoicedate = ‴♥day-♥month-♥year‴
+    end
+    test ⊂♥invoicedate.Length == 10 && ♥invoicedate.Substring(2, 1) == "-" && ♥invoicedate.Substring(5, 1) == "-" ⊃
+    test ♥result⟦results[0].content[0].children[1].schema_id⟧=="date_issue"
+    ♥date_due = ♥result⟦results[0].content[0].children[1].value⟧.Replace("/", "-")
+    test ♥result⟦results[0].content[0].children[2].schema_id⟧=="date_due"
+    ♥totaldue = ♥result⟦results[0].content[2].children[0].value⟧
+    test ♥result⟦results[0].content[2].children[0].schema_id⟧=="amount_due"
+    ♥companyname = ♥result⟦results[0].content[3].children[0].value⟧
+    test ♥result⟦results[0].content[3].children[0].schema_id⟧=="sender_name"
+  
+    call AppendCsv csvname ♥environment⟦USERPROFILE⟧\Downloads\invoices.csv id ♥id duedate ♥duedate invoiceno ♥invoiceno invoicedate ♥invoicedate companyname ♥companyname totaldue ♥totaldue
+end
+
+procedure AppendCsv csvname ‴‴ id ‴‴ duedate ‴‴ invoiceno ‴‴ invoicedate ‴‴ companyname ‴‴ totaldue ‴‴
+    ⊂
+        if (!System.IO.File.Exists(♥csvname))
+            System.IO.File.WriteAllText(♥csvname,
+                "ID,DueDate,InvoiceNo,InvoiceDate,CompanyName,TotalDue\r\n");
+        System.IO.File.AppendAllText(♥csvname,
+            ♥id + "," + ♥duedate + "," + ♥invoiceno + "," + ♥invoicedate + "," + 
+            ♥companyname + "," + ♥totaldue + "\r\n"); 
+    ⊃
+end
+```
