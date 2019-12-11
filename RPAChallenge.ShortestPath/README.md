@@ -1,5 +1,7 @@
 ﻿# RPAChallenge.com Shortest Path
 
+<!--
+
 You can find out this excersise on the website [RPAChallenge.com Shortest Path](http://rpachallenge.com/assets/shortestPath/public/shortestpath.html):
 
 1. The goal of this challenge is to create an attended robot that works in tandem with the user.
@@ -46,3 +48,5 @@ So, that's the way how we can find out all HTML elements protected by captcha.
 ```G1ANT
 
 ```
+
+-->
