@@ -144,7 +144,8 @@ Result:
    },
    { 
    ...
-]```
+]
+```
 
 ### POST: Addon/Put
 
@@ -312,7 +313,7 @@ Start subscription
 
 ```G1ANT
 ♥subscription = ⊂System.IO.File.ReadAllText(@"c:\users\chris\downloads\subscription.xml")⊃
-call Api query /subscriptions/list method GET parameters subscriptionxml=♥subscription
+call Api query /subscriptions/list method POST parameters subscriptionxml=♥subscription
 ```
 
 whereas subscription.xml is file like that
@@ -329,7 +330,7 @@ Stop subscription
 
 ```G1ANT
 ♥subscription = ⊂System.IO.File.ReadAllText(@"c:\users\chris\downloads\subscription.xml")⊃
-call Api query /subscriptions/stop method GET parameters subscriptionxml=♥subscription
+call Api query /subscriptions/stop method POST parameters subscriptionxml=♥subscription
 ```
 
 whereas subscription.xml is file like that
