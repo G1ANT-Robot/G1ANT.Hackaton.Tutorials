@@ -23,6 +23,7 @@ We have to put the last <WebServer> section:
  ...
  <WebServer>
   <Enabled>true</Enabled>
+  <Hostname>localhost</Hostname>
   <Port>1234</Port>
     <Tokens>
       <Token Name="Chris" Value="9CE867D195B02E" />
@@ -38,6 +39,7 @@ Name | Description
 **Enabled** | API can be enabled (true) or no (false)
 **Port** | On which port our API should be available? 1234 is ok.
 **Tokens** | List of tokens for authorisation. Value is the key. Name is for our information only.
+**Hostname** | Name of the host, default localhost
 
 ## Authorisation, status
 
