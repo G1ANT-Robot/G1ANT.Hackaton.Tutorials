@@ -8,7 +8,7 @@ As a developer, we would like to have remote access to G1ANT.Robot by built-in W
 4. For remote development (spread the processes)
 
 Everything from that is possible with G1ANT.Robot.API feature. Everybody can build
-G1ANT.Orchestrator (for Azure, for our own or connector to any different system), by using this API.
+Orchestrator (for Azure, for our own or connector to any different system), by using this API.
 
 ![Orchestrator](orchestrator.jpg)
 
